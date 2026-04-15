@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 
 import type { CorrectionResult } from "@/lib/types";
 
-const initialText = "내일 회의 자료를 체크 부탁드릴게요.";
+const initialText = "내일 회의 자료를 한 번 더 확인 부탁드릴게요.";
+
 type CorrectionApiResponse =
   | { ok: true; data: CorrectionResult }
   | { ok: false; error: { message: string } };
@@ -41,14 +42,18 @@ export function CorrectionLab() {
   return (
     <section
       id="correction-lab"
-      className="grid gap-6 rounded-[2.25rem] border border-black/10 bg-[#fffdf8] p-6 md:grid-cols-[1fr_1fr]"
+      className="grid gap-6 rounded-[2.25rem] border border-black/10 bg-[#fffdf8] p-6 md:grid-cols-[0.95fr_1.05fr]"
     >
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-black/45">AI Correction Lab</p>
-        <h3 className="mt-3 font-display text-4xl leading-tight text-black">문장을 다듬는 이유까지 함께 읽는 교정 실험실</h3>
+        <h3 className="mt-3 font-display text-4xl leading-tight text-black md:text-5xl">
+          문장을 다듬는 이유까지
+          <br />
+          함께 보여 주는 교정 실험실
+        </h3>
         <p className="mt-4 text-sm leading-8 text-black/68">
-          맞춤법, 문맥, 공손함을 함께 다루는 API 예시입니다. 모델 응답이 없으면 fallback 결과로
-          동작합니다.
+          맞춤법만 고치는 데서 끝내지 않고, 왜 더 자연스러운지와 어떤 대안을 쓸 수 있는지까지 정리해
+          보여 줍니다. 모델 응답이 없을 때도 기본 fallback 결과가 동작합니다.
         </p>
         <form action={handleSubmit} className="mt-6 space-y-4">
           <textarea
@@ -67,20 +72,22 @@ export function CorrectionLab() {
         </form>
       </div>
       <div className="rounded-[1.75rem] border border-black/8 bg-[#f8f4eb] p-5">
-        <p className="text-sm font-semibold text-black">결과</p>
+        <p className="text-sm font-semibold text-black">교정 결과</p>
         {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
         {result ? (
           <div className="mt-4 space-y-4 text-sm text-black/75">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-black/45">교정문</p>
-              <p className="mt-2 rounded-2xl border border-black/8 bg-white p-4 text-base font-medium text-black">{result.corrected}</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-black/45">교정 문장</p>
+              <p className="mt-2 rounded-2xl border border-black/8 bg-white p-4 text-base font-medium text-black">
+                {result.corrected}
+              </p>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-black/45">요약</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-black/45">한 줄 요약</p>
               <p className="mt-2 leading-7">{result.summary}</p>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-black/45">설명</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-black/45">설명 메모</p>
               <ul className="mt-2 space-y-2">
                 {result.notes.map((note) => (
                   <li key={note} className="rounded-xl border border-black/8 bg-white px-4 py-3">
@@ -90,7 +97,7 @@ export function CorrectionLab() {
               </ul>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-black/45">대안 표현</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-black/45">다른 표현</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {result.alternatives.map((alternative) => (
                   <span key={alternative} className="rounded-full border border-black/10 bg-white px-3 py-2">
@@ -102,7 +109,7 @@ export function CorrectionLab() {
           </div>
         ) : (
           <p className="mt-4 text-sm leading-7 text-black/60">
-            문장을 입력하면 교정 결과가 이 영역에 표시됩니다.
+            문장을 입력하면 교정 결과와 설명이 이 영역에 표시됩니다.
           </p>
         )}
       </div>

@@ -18,7 +18,7 @@ export default async function HomePage() {
         <SectionTitle
           eyebrow="Learning Tracks"
           title="생활 속 말의 결을 차분하게 익히는 학습 갈래"
-          description="공공 자료실처럼 흩어보기 쉬운 구조로 정리한 공개 학습 카드입니다."
+          description="공개 자료처럼 가볍게 훑어보기 쉬운 구조로 정리한 학습 카드입니다."
         />
         <LessonGrid lessons={lessons} />
       </section>
@@ -26,8 +26,8 @@ export default async function HomePage() {
       <section className="space-y-8">
         <SectionTitle
           eyebrow="Expressions"
-          title="표현의 온도와 맥락을 함께 읽는 카드 모음"
-          description="직역보다 실제로 어떻게 들리고 어떤 장면에서 살아나는지를 우선해 보여 줍니다."
+          title="표현의 온도와 맥락까지 함께 읽는 카드 모음"
+          description="직역보다 실제로 어떻게 들리고 어떤 장면에서 자연스러운지를 먼저 보여 줍니다."
         />
         <ExpressionList expressions={expressions} />
       </section>
@@ -39,10 +39,10 @@ export default async function HomePage() {
           <p className="font-display text-4xl text-black">검수의 원칙</p>
         </div>
         <p className="text-sm leading-8 text-black/72">
-          프롬프트, 버전, 평가 기준을 분리해 관리하고, 결과는 검수 상태를 거쳐 공개 영역으로만 전달합니다.
+          프롬프트, 버전, 평가 기준은 분리해 관리하고 결과는 검토 상태를 거친 뒤 공개 영역으로만 전달합니다.
         </p>
         <p className="text-sm leading-8 text-black/72">
-          생성 속도보다 설명 가능성과 운영 가능성을 앞세우는 방향을 홈 화면에서도 그대로 드러냅니다.
+          생성 속도보다 설명 가능성과 운영 가능성을 우선하는 방향이 화면에서도 그대로 드러나도록 구성했습니다.
         </p>
       </section>
     </main>

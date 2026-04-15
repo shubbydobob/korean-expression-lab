@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { PromptTask } from "@/lib/types";
 
 export const correctionRequestSchema = z.object({
   text: z.string().min(3),
@@ -51,3 +52,105 @@ export const videoScriptResponseSchema = z.object({
     tags: z.array(z.string()).min(1),
   }),
 });
+
+type JsonSchema = Record<string, unknown>;
+
+function strictObject(properties: Record<string, JsonSchema>, required: string[]): JsonSchema {
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties,
+    required,
+  };
+}
+
+export const responseFormatByTask: Record<
+  Extract<PromptTask, "correction" | "lesson_generation" | "video_script_generation">,
+  { name: string; schema: JsonSchema }
+> = {
+  correction: {
+    name: "correction_result",
+    schema: strictObject(
+      {
+        original: { type: "string" },
+        corrected: { type: "string" },
+        summary: { type: "string" },
+        notes: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 1,
+        },
+        alternatives: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 1,
+        },
+      },
+      ["original", "corrected", "summary", "notes", "alternatives"],
+    ),
+  },
+  lesson_generation: {
+    name: "lesson_draft",
+    schema: strictObject(
+      {
+        title: { type: "string" },
+        summary: { type: "string" },
+        objectives: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 2,
+        },
+        exampleSentences: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 2,
+        },
+        exercises: {
+          type: "array",
+          items: { type: "string" },
+          minItems: 2,
+        },
+      },
+      ["title", "summary", "objectives", "exampleSentences", "exercises"],
+    ),
+  },
+  video_script_generation: {
+    name: "video_script",
+    schema: strictObject(
+      {
+        title: { type: "string" },
+        hook: { type: "string" },
+        narration: { type: "string" },
+        scenes: {
+          type: "array",
+          minItems: 3,
+          items: strictObject(
+            {
+              heading: { type: "string" },
+              visualPrompt: { type: "string" },
+              captions: {
+                type: "array",
+                items: { type: "string" },
+                minItems: 1,
+              },
+            },
+            ["heading", "visualPrompt", "captions"],
+          ),
+        },
+        youtube: strictObject(
+          {
+            title: { type: "string" },
+            description: { type: "string" },
+            tags: {
+              type: "array",
+              items: { type: "string" },
+              minItems: 1,
+            },
+          },
+          ["title", "description", "tags"],
+        ),
+      },
+      ["title", "hook", "narration", "scenes", "youtube"],
+    ),
+  },
+};

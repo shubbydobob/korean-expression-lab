@@ -19,7 +19,7 @@ export function Hero() {
             </h1>
             <p className="max-w-2xl text-base leading-8 text-black/72 md:text-lg">
               순우리말, 영어 표현, 한국어 읽기 이해를 공공 자료처럼 차분하게 열어 둡니다. 공개되는
-              콘텐츠는 모두 검수를 거친 결과만 담습니다.
+              콘텐츠는 모두 사람 검수를 거친 결과만 담습니다.
             </p>
           </div>
           <div className="flex flex-wrap gap-3 pt-1">
@@ -39,15 +39,21 @@ export function Hero() {
           <div className="grid gap-3 md:grid-cols-3">
             <div className="rounded-[1.25rem] border border-black/10 bg-white/90 px-4 py-4">
               <p className="text-xs uppercase tracking-[0.25em] text-black/45">정제된 공개 자료</p>
-              <p className="mt-2 text-sm leading-6 text-black/75">한 번 걸러낸 문장과 설명만 공공 아카이브처럼 제공합니다.</p>
+              <p className="mt-2 text-sm leading-6 text-black/75">
+                한 번 걸러낸 문장과 설명만 공공 아카이브처럼 제공합니다.
+              </p>
             </div>
             <div className="rounded-[1.25rem] border border-black/10 bg-white/90 px-4 py-4">
               <p className="text-xs uppercase tracking-[0.25em] text-black/45">먹빛 중심 구성</p>
-              <p className="mt-2 text-sm leading-6 text-black/75">흰 종이와 검은 획을 닮은 톤으로 집중도를 높였습니다.</p>
+              <p className="mt-2 text-sm leading-6 text-black/75">
+                흰 종이와 검은 획을 닮은 톤으로 집중도를 높였습니다.
+              </p>
             </div>
             <div className="rounded-[1.25rem] border border-black/10 bg-white/90 px-4 py-4">
               <p className="text-xs uppercase tracking-[0.25em] text-black/45">설명 가능한 AI</p>
-              <p className="mt-2 text-sm leading-6 text-black/75">교정과 생성은 이유와 평가 기준을 함께 남기는 흐름으로 관리합니다.</p>
+              <p className="mt-2 text-sm leading-6 text-black/75">
+                교정과 생성은 이유와 평가 기준을 함께 남기는 흐름으로 관리합니다.
+              </p>
             </div>
           </div>
         </div>
@@ -69,14 +75,14 @@ export function Hero() {
               <div className="rounded-[1.25rem] border border-black/10 bg-[#fbf8f1] px-4 py-4 sm:col-span-2">
                 <p className="font-display text-2xl text-black">자모 포스터</p>
                 <p className="mt-2 text-sm leading-6 text-black/68">
-                  한글 자음과 모음을 직접 전면에 세운 편집 이미지입니다. 흰 종이와 먹색 활자의 대비를 크게
-                  잡아 첫 화면의 인상을 정리했습니다.
+                  한글 자음과 모음을 전면에 세운 편집 이미지입니다. 흰 종이와 먹색 활자의 대비로 첫 화면의
+                  인상을 정리했습니다.
                 </p>
               </div>
               <div className="rounded-[1.25rem] border border-black/10 bg-[#fbf8f1] px-4 py-4">
                 <p className="font-display text-2xl text-black">한국적 인상</p>
                 <p className="mt-2 text-sm leading-6 text-black/68">
-                  검은 활자, 붉은 낙관, 종이 질감을 중심으로 공공 아카이브보다 더 또렷한 정체성을 만듭니다.
+                  검은 활자, 붉은 낙관, 종이 질감을 중심으로 또렷한 정체성을 만듭니다.
                 </p>
               </div>
             </div>
