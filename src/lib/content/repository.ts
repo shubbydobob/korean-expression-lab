@@ -96,6 +96,15 @@ const TRANSITIONS: Record<ContentStatus, ContentStatus[]> = {
   archived: ["draft"],
 };
 
+function isReadonlyFsError(error: unknown) {
+  return (
+    error instanceof Error &&
+    "code" in error &&
+    (error as NodeJS.ErrnoException).code !== undefined &&
+    ["EROFS", "EACCES", "EPERM"].includes((error as NodeJS.ErrnoException).code ?? "")
+  );
+}
+
 function normalizePromptVersion(version: PromptVersion, task: PromptTask): PromptVersion {
   const fallback = promptRegistry[task];
   return {
@@ -138,7 +147,6 @@ async function readStore(): Promise<ContentStore> {
     const raw = await readFile(STORE_PATH, "utf8");
     return JSON.parse(raw) as ContentStore;
   } catch {
-    await writeStore(DEFAULT_STORE);
     return DEFAULT_STORE;
   }
 }
@@ -147,10 +155,22 @@ async function writeStore(store: ContentStore) {
   await writeFile(STORE_PATH, `${JSON.stringify(store, null, 2)}\n`, "utf8");
 }
 
+async function persistStore(store: ContentStore) {
+  try {
+    await writeStore(store);
+  } catch (error) {
+    if (isReadonlyFsError(error)) {
+      return;
+    }
+
+    throw error;
+  }
+}
+
 async function updateStore<T>(updater: (store: ContentStore) => T | Promise<T>): Promise<T> {
   const store = await readStore();
   const result = await updater(store);
-  await writeStore(store);
+  await persistStore(store);
   return result;
 }
 
