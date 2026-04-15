@@ -42,8 +42,21 @@ export type PromptTemplate = {
   title: string;
   task: PromptTask;
   description: string;
-  activeVersion: number;
+  activeVersionId: string;
+};
+
+export type PromptVersionStatus = "draft" | "evaluated" | "active" | "archived";
+
+export type PromptVersion = {
+  id: string;
+  templateId: string;
+  version: number;
   model: string;
+  status: PromptVersionStatus;
+  notes: string;
+  lastEvalRunId: string | null;
+  lastEvalScore: number | null;
+  updatedAt: string;
 };
 
 export type EvalSet = {
@@ -73,4 +86,52 @@ export type VideoScript = {
     description: string;
     tags: string[];
   };
+};
+
+export type LessonStatusAction = {
+  label: string;
+  nextStatus: ContentStatus;
+};
+
+export type AiRunRecord = {
+  id: string;
+  task: PromptTask;
+  promptTemplateId: string;
+  promptVersionId: string;
+  promptVersion: number;
+  model: string;
+  input: unknown;
+  output: unknown;
+  usedFallback: boolean;
+  errorMessage: string | null;
+  createdAt: string;
+};
+
+export type EvalRunRecord = {
+  id: string;
+  evalSetId: string;
+  evalSetName: string;
+  task: PromptTask;
+  promptVersionId: string;
+  promptVersion: number;
+  score: number;
+  thresholdPassed: boolean;
+  results: Array<{
+    id: string;
+    passed: boolean;
+    summary: string;
+  }>;
+  createdAt: string;
+};
+
+export type MediaScriptRecord = {
+  id: string;
+  contentId: string;
+  contentSlug: string;
+  title: string;
+  status: string;
+  narration: string;
+  scenePlan: VideoScript["scenes"];
+  youtubeMetadata: VideoScript["youtube"];
+  createdAt: string;
 };

@@ -78,6 +78,7 @@
 - `npm run build`
 - 관련 API 수동 확인
 - 필요 시 평가셋 실행 또는 최소 샘플 검증
+- `DATABASE_URL`이 연결된 환경에서는 `npm run db:seed`, `npm run db:verify`로 DB 경로를 점검한다.
 
 ## 관련 문서
 - `AGENTS.md`

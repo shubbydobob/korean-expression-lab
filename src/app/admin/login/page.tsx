@@ -13,7 +13,7 @@ export default function AdminLoginPage() {
         <p className="text-xs uppercase tracking-[0.3em] text-sage">Internal Access</p>
         <h1 className="mt-3 text-3xl font-semibold text-ink">관리자 로그인</h1>
         <p className="mt-3 text-sm leading-7 text-slate-600">
-          운영 전용 화면이다. `.env.local`의 관리자 자격 증명으로만 접근할 수 있다.
+          운영 전용 화면입니다. `.env.local`에 설정한 관리자 자격 증명으로만 접근할 수 있습니다.
         </p>
         <form action={formAction} className="mt-6 space-y-4">
           <div className="space-y-2">

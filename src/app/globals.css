@@ -4,6 +4,10 @@
 
 :root {
   color-scheme: light;
+  --ink-strong: #111111;
+  --paper-base: #fbf8f1;
+  --paper-warm: #f2ede3;
+  --paper-line: rgba(17, 17, 17, 0.08);
 }
 
 html {
@@ -13,11 +17,43 @@ html {
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top, rgba(233, 216, 166, 0.35), transparent 28%),
-    linear-gradient(180deg, #fcfaf6 0%, #f3eee4 100%);
-  color: #111827;
+    radial-gradient(circle at top right, rgba(0, 0, 0, 0.06), transparent 22%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.65)),
+    linear-gradient(180deg, var(--paper-base) 0%, var(--paper-warm) 100%);
+  color: var(--ink-strong);
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 0, transparent 96%, rgba(17, 17, 17, 0.025) 100%),
+    repeating-linear-gradient(
+      180deg,
+      transparent 0,
+      transparent 38px,
+      rgba(17, 17, 17, 0.028) 39px,
+      transparent 40px
+    );
+  opacity: 0.7;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 15% 12%, rgba(0, 0, 0, 0.045), transparent 16%),
+    radial-gradient(circle at 82% 18%, rgba(179, 50, 27, 0.06), transparent 10%),
+    radial-gradient(circle at 50% 82%, rgba(0, 0, 0, 0.04), transparent 18%);
+  mix-blend-mode: multiply;
+  opacity: 0.55;
 }
 
 ::selection {
-  background: rgba(143, 79, 47, 0.18);
+  background: rgba(0, 0, 0, 0.12);
 }

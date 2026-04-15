@@ -35,7 +35,12 @@ create table prompt_versions (
   model text not null,
   system_prompt text not null,
   instructions jsonb not null,
+  status text not null default 'draft',
+  notes text not null default '',
+  last_eval_run_id uuid,
+  last_eval_score numeric(5,2),
   is_active boolean not null default false,
+  updated_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   unique (template_id, version)
 );
@@ -85,6 +90,7 @@ create table eval_sets (
   name text not null unique,
   task prompt_task not null,
   description text not null,
+  score_threshold integer not null default 80,
   cases jsonb not null,
   created_at timestamptz not null default now()
 );
@@ -96,6 +102,20 @@ create table eval_runs (
   score numeric(5,2) not null,
   result_summary jsonb not null,
   executed_at timestamptz not null default now()
+);
+
+create table ai_runs (
+  id text primary key,
+  task prompt_task not null,
+  prompt_template_id uuid not null references prompt_templates(id),
+  prompt_version_id uuid not null references prompt_versions(id),
+  prompt_version integer not null,
+  model text not null,
+  input_payload jsonb not null,
+  output_payload jsonb not null,
+  used_fallback boolean not null default false,
+  error_message text,
+  created_at timestamptz not null default now()
 );
 
 create table media_scripts (

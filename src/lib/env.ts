@@ -21,3 +21,9 @@ export function getAiEnv() {
     baseUrl: process.env.OPENAI_BASE_URL || "https://api.openai.com/v1",
   };
 }
+
+export function getDatabaseEnv() {
+  return {
+    url: process.env.DATABASE_URL,
+  };
+}

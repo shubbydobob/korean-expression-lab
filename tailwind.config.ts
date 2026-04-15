@@ -19,8 +19,9 @@ const config: Config = {
         panel: "0 24px 70px rgba(17, 24, 39, 0.12)",
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)"],
+        sans: ["var(--font-body-serif)"],
         mono: ["var(--font-geist-mono)"],
+        display: ["var(--font-display-brush)"],
       },
     },
   },

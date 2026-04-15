@@ -84,7 +84,9 @@ Current task areas include:
 - `npm run start`: start production server
 - `npm run lint`: run ESLint
 - `npm run typecheck`: run TypeScript checks
-- `npm run test`: currently aliases `npm run typecheck`
+- `npm run test`: typecheck plus harness validation
+- `npm run db:seed`: sync `src/lib/content/store.json` into Postgres
+- `npm run db:verify`: verify core Postgres harness invariants
 
 ## Quality Bar
 
@@ -103,6 +105,14 @@ Changes should meet these minimum conditions:
 3. Validate with `npm run typecheck` and `npm run build`
 4. Use the commit rules in `docs/commit-conventions.md`
 5. Keep AI changes aligned with `docs/ai-harness-engineering.md`
+
+## Postgres Setup
+
+1. Run `docker compose up -d`
+2. Apply `docs/db-schema.sql` to the local Postgres container
+3. Confirm `.env.local` uses `postgres://korean:korean@localhost:5432/korean`
+4. Run `npm run db:seed`
+5. Run `npm run db:verify`
 
 ## Related Docs
 
