@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await runEvalSet(evalSet);
+    const result = await runEvalSet(evalSet, { promptVersionId: promptTarget.version.id });
     const evalRun = await createEvalRun({
       evalSetId: evalSet.id,
       evalSetName: evalSet.name,

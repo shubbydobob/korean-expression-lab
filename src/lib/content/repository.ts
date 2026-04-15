@@ -1,8 +1,9 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { evalSets, expressions, lessons, promptTemplates } from "@/lib/content/catalog";
+import { promptRegistry } from "@/lib/ai/prompts";
+import { evalSets, expressions, lessons, promptTemplates, promptVersionSeeds } from "@/lib/content/catalog";
 import { getPostgresPool } from "@/lib/db/postgres";
 import { getDatabaseEnv } from "@/lib/env";
 import type {
@@ -19,6 +20,11 @@ import type {
   PromptTemplate,
 } from "@/lib/types";
 import type { Pool } from "pg";
+
+type ResolvedPromptVersion = {
+  template: PromptTemplate;
+  version: PromptVersion;
+};
 
 type ContentStore = {
   lessons: LessonCard[];
@@ -42,6 +48,8 @@ const DEFAULT_STORE: ContentStore = {
       templateId: "33333333-3333-3333-3333-333333333001",
       version: 3,
       model: "gpt-5.4-mini",
+      systemPrompt: promptRegistry.correction.system,
+      instructions: promptRegistry.correction.instructions,
       status: "active",
       notes: "기본 교정용 활성 버전",
       lastEvalRunId: null,
@@ -53,6 +61,8 @@ const DEFAULT_STORE: ContentStore = {
       templateId: "33333333-3333-3333-3333-333333333002",
       version: 2,
       model: "gpt-5.4-mini",
+      systemPrompt: promptRegistry.lesson_generation.system,
+      instructions: promptRegistry.lesson_generation.instructions,
       status: "active",
       notes: "기본 수업 초안 생성용 활성 버전",
       lastEvalRunId: null,
@@ -64,6 +74,8 @@ const DEFAULT_STORE: ContentStore = {
       templateId: "33333333-3333-3333-3333-333333333003",
       version: 1,
       model: "gpt-5.4-mini",
+      systemPrompt: promptRegistry.video_script_generation.system,
+      instructions: promptRegistry.video_script_generation.instructions,
       status: "active",
       notes: "기본 영상 스크립트 생성용 활성 버전",
       lastEvalRunId: null,
@@ -83,6 +95,22 @@ const TRANSITIONS: Record<ContentStatus, ContentStatus[]> = {
   published: ["archived"],
   archived: ["draft"],
 };
+
+function normalizePromptVersion(version: PromptVersion, task: PromptTask): PromptVersion {
+  const fallback = promptRegistry[task];
+  return {
+    ...version,
+    systemPrompt: version.systemPrompt || fallback.system,
+    instructions: version.instructions?.length ? version.instructions : fallback.instructions,
+  };
+}
+
+function buildPromptFingerprint(systemPrompt: string, instructions: string[]) {
+  return createHash("sha256")
+    .update(JSON.stringify({ systemPrompt, instructions }))
+    .digest("hex")
+    .slice(0, 16);
+}
 
 function getPool() {
   return getPostgresPool(getDatabaseEnv().url);
@@ -237,7 +265,7 @@ export async function listPromptVersions(): Promise<PromptVersion[]> {
   return withFallback(
     async (pool) => {
       const result = await pool.query(
-        `select id, template_id, version, model, status, notes, last_eval_run_id, last_eval_score, updated_at
+        `select id, template_id, version, model, system_prompt, instructions, status, notes, last_eval_run_id, last_eval_score, updated_at
          from prompt_versions
          order by template_id asc, version desc`,
       );
@@ -247,6 +275,8 @@ export async function listPromptVersions(): Promise<PromptVersion[]> {
         templateId: row.template_id,
         version: row.version,
         model: row.model,
+        systemPrompt: row.system_prompt,
+        instructions: row.instructions ?? [],
         status: row.status,
         notes: row.notes,
         lastEvalRunId: row.last_eval_run_id,
@@ -256,9 +286,12 @@ export async function listPromptVersions(): Promise<PromptVersion[]> {
     },
     async () => {
       const store = await readStore();
-      return [...store.promptVersions].sort((left, right) =>
-        left.templateId.localeCompare(right.templateId) || right.version - left.version,
-      );
+      return [...store.promptVersions]
+        .map((version) => {
+          const template = store.promptTemplates.find((item) => item.id === version.templateId);
+          return normalizePromptVersion(version, template?.task ?? "correction");
+        })
+        .sort((left, right) => left.templateId.localeCompare(right.templateId) || right.version - left.version);
     },
   );
 }
@@ -519,9 +552,12 @@ export async function createAiRun(input: {
   promptVersionId: string;
   promptVersion: number;
   model: string;
+  promptFingerprint: string;
+  promptSnapshot: AiRunRecord["promptSnapshot"];
   input: unknown;
   output: unknown;
   usedFallback: boolean;
+  fallbackReason: string | null;
   errorMessage: string | null;
 }): Promise<AiRunRecord> {
   return withFallback(
@@ -529,8 +565,8 @@ export async function createAiRun(input: {
       const id = `ai-run-${Date.now()}`;
       await pool.query(
         `insert into ai_runs (
-          id, task, prompt_template_id, prompt_version_id, prompt_version, model, input_payload, output_payload, used_fallback, error_message
-        ) values ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,$10)`,
+          id, task, prompt_template_id, prompt_version_id, prompt_version, model, prompt_fingerprint, prompt_snapshot, input_payload, output_payload, used_fallback, fallback_reason, error_message
+        ) values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::jsonb,$10::jsonb,$11,$12,$13)`,
         [
           id,
           input.task,
@@ -538,9 +574,12 @@ export async function createAiRun(input: {
           input.promptVersionId,
           input.promptVersion,
           input.model,
+          input.promptFingerprint,
+          JSON.stringify(input.promptSnapshot),
           JSON.stringify(input.input),
           JSON.stringify(input.output),
           input.usedFallback,
+          input.fallbackReason,
           input.errorMessage,
         ],
       );
@@ -552,9 +591,12 @@ export async function createAiRun(input: {
         promptVersionId: input.promptVersionId,
         promptVersion: input.promptVersion,
         model: input.model,
+        promptFingerprint: input.promptFingerprint,
+        promptSnapshot: input.promptSnapshot,
         input: input.input,
         output: input.output,
         usedFallback: input.usedFallback,
+        fallbackReason: input.fallbackReason,
         errorMessage: input.errorMessage,
         createdAt: new Date().toISOString(),
       };
@@ -567,9 +609,12 @@ export async function createAiRun(input: {
       promptVersionId: input.promptVersionId,
       promptVersion: input.promptVersion,
       model: input.model,
+      promptFingerprint: input.promptFingerprint,
+      promptSnapshot: input.promptSnapshot,
       input: input.input,
       output: input.output,
       usedFallback: input.usedFallback,
+      fallbackReason: input.fallbackReason,
       errorMessage: input.errorMessage,
       createdAt: new Date().toISOString(),
     };
@@ -585,7 +630,7 @@ export async function listRecentAiRuns(limit = 10): Promise<AiRunRecord[]> {
   return withFallback(
     async (pool) => {
       const result = await pool.query(
-        `select id, task, prompt_template_id, prompt_version_id, prompt_version, model, input_payload, output_payload, used_fallback, error_message, created_at
+        `select id, task, prompt_template_id, prompt_version_id, prompt_version, model, prompt_fingerprint, prompt_snapshot, input_payload, output_payload, used_fallback, fallback_reason, error_message, created_at
          from ai_runs
          order by created_at desc
          limit $1`,
@@ -599,16 +644,26 @@ export async function listRecentAiRuns(limit = 10): Promise<AiRunRecord[]> {
         promptVersionId: row.prompt_version_id,
         promptVersion: row.prompt_version,
         model: row.model,
+        promptFingerprint: row.prompt_fingerprint,
+        promptSnapshot: row.prompt_snapshot,
         input: row.input_payload,
         output: row.output_payload,
         usedFallback: row.used_fallback,
+        fallbackReason: row.fallback_reason,
         errorMessage: row.error_message,
         createdAt: row.created_at.toISOString(),
       }));
     },
     async () => {
       const store = await readStore();
-      return store.aiRuns.slice(0, limit);
+      return store.aiRuns.slice(0, limit).map((run) => ({
+        ...run,
+        promptFingerprint:
+          run.promptFingerprint ||
+          buildPromptFingerprint(run.promptSnapshot?.system ?? "", run.promptSnapshot?.instructions ?? []),
+        promptSnapshot: run.promptSnapshot ?? { system: "", instructions: [] },
+        fallbackReason: run.fallbackReason ?? null,
+      }));
     },
   );
 }
@@ -646,13 +701,13 @@ export async function getPromptTemplateByTask(task: PromptTask): Promise<PromptT
 
 export async function getActivePromptVersionByTask(
   task: PromptTask,
-): Promise<{ template: PromptTemplate; version: PromptVersion } | undefined> {
+): Promise<ResolvedPromptVersion | undefined> {
   return withFallback(
     async (pool) => {
       const result = await pool.query(
         `select
            t.id as template_id, t.slug, t.title, t.task, t.description,
-           v.id as version_id, v.version, v.model, v.status, v.notes, v.last_eval_run_id, v.last_eval_score, v.updated_at
+           v.id as version_id, v.version, v.model, v.system_prompt, v.instructions, v.status, v.notes, v.last_eval_run_id, v.last_eval_score, v.updated_at
          from prompt_templates t
          join prompt_versions v on v.template_id = t.id and v.is_active = true
          where t.task = $1
@@ -679,6 +734,8 @@ export async function getActivePromptVersionByTask(
           templateId: row.template_id,
           version: row.version,
           model: row.model,
+          systemPrompt: row.system_prompt,
+          instructions: row.instructions ?? [],
           status: row.status,
           notes: row.notes,
           lastEvalRunId: row.last_eval_run_id,
@@ -699,20 +756,20 @@ export async function getActivePromptVersionByTask(
         return undefined;
       }
 
-      return { template, version };
+      return { template, version: normalizePromptVersion(version, task) };
     },
   );
 }
 
 export async function getPromptVersionById(
   promptVersionId: string,
-): Promise<{ template: PromptTemplate; version: PromptVersion } | undefined> {
+): Promise<ResolvedPromptVersion | undefined> {
   return withFallback(
     async (pool) => {
       const result = await pool.query(
         `select
            t.id as template_id, t.slug, t.title, t.task, t.description,
-           v.id as version_id, v.version, v.model, v.status, v.notes, v.last_eval_run_id, v.last_eval_score, v.updated_at, v.is_active
+           v.id as version_id, v.version, v.model, v.system_prompt, v.instructions, v.status, v.notes, v.last_eval_run_id, v.last_eval_score, v.updated_at, v.is_active
          from prompt_versions v
          join prompt_templates t on t.id = v.template_id
          where v.id = $1
@@ -737,6 +794,8 @@ export async function getPromptVersionById(
           templateId: row.template_id,
           version: row.version,
           model: row.model,
+          systemPrompt: row.system_prompt,
+          instructions: row.instructions ?? [],
           status: row.status,
           notes: row.notes,
           lastEvalRunId: row.last_eval_run_id,
@@ -757,7 +816,7 @@ export async function getPromptVersionById(
         return undefined;
       }
 
-      return { template, version };
+      return { template, version: normalizePromptVersion(version, template.task) };
     },
   );
 }
@@ -952,7 +1011,7 @@ export async function attachEvalRunToPromptVersion(input: {
              status = $4,
              updated_at = now()
          where id = $1
-         returning id, template_id, version, model, status, notes, last_eval_run_id, last_eval_score, updated_at`,
+         returning id, template_id, version, model, system_prompt, instructions, status, notes, last_eval_run_id, last_eval_score, updated_at`,
         [input.promptVersionId, input.evalRunId, input.score, input.thresholdPassed ? "evaluated" : "draft"],
       );
       const row = result.rows[0];
@@ -964,6 +1023,8 @@ export async function attachEvalRunToPromptVersion(input: {
         templateId: row.template_id,
         version: row.version,
         model: row.model,
+        systemPrompt: row.system_prompt,
+        instructions: row.instructions ?? [],
         status: row.status,
         notes: row.notes,
         lastEvalRunId: row.last_eval_run_id,
@@ -982,7 +1043,8 @@ export async function attachEvalRunToPromptVersion(input: {
         version.lastEvalScore = input.score;
         version.status = input.thresholdPassed ? "evaluated" : "draft";
         version.updatedAt = new Date().toISOString();
-        return version;
+        const template = store.promptTemplates.find((item) => item.id === version.templateId);
+        return normalizePromptVersion(version, template?.task ?? "correction");
       }),
   );
 }

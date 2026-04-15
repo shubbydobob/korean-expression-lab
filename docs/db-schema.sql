@@ -111,9 +111,12 @@ create table ai_runs (
   prompt_version_id uuid not null references prompt_versions(id),
   prompt_version integer not null,
   model text not null,
+  prompt_fingerprint text not null,
+  prompt_snapshot jsonb not null,
   input_payload jsonb not null,
   output_payload jsonb not null,
   used_fallback boolean not null default false,
+  fallback_reason text,
   error_message text,
   created_at timestamptz not null default now()
 );

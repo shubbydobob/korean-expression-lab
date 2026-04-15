@@ -52,6 +52,8 @@ export type PromptVersion = {
   templateId: string;
   version: number;
   model: string;
+  systemPrompt: string;
+  instructions: string[];
   status: PromptVersionStatus;
   notes: string;
   lastEvalRunId: string | null;
@@ -69,6 +71,12 @@ export type EvalSet = {
     id: string;
     input: string;
     expectedFocus: string;
+    expectedCorrection?: string;
+    requiredNotes?: string[];
+    audience?: Audience;
+    difficulty?: number;
+    expectedSections?: string[];
+    expectedTags?: string[];
   }>;
 };
 
@@ -100,9 +108,15 @@ export type AiRunRecord = {
   promptVersionId: string;
   promptVersion: number;
   model: string;
+  promptFingerprint: string;
+  promptSnapshot: {
+    system: string;
+    instructions: string[];
+  };
   input: unknown;
   output: unknown;
   usedFallback: boolean;
+  fallbackReason: string | null;
   errorMessage: string | null;
   createdAt: string;
 };

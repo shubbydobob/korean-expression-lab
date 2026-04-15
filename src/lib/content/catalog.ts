@@ -1,27 +1,28 @@
-import type { EvalSet, ExpressionCard, LessonCard, PromptTemplate } from "@/lib/types";
+import { promptRegistry } from "@/lib/ai/prompts";
+import type { EvalSet, ExpressionCard, LessonCard, PromptTemplate, PromptVersion } from "@/lib/types";
 
 export const lessons: LessonCard[] = [
   {
     id: "11111111-1111-1111-1111-111111111001",
     slug: "pure-korean-for-daily-speech",
-    title: "일상에서 되살리는 순우리말 표현",
-    summary: "자주 쓰는 번역투 표현을 더 자연스러운 우리말로 바꾸는 입문 수업입니다.",
+    title: "일상에서 살아나는 순우리말 표현",
+    summary: "자주 쓰는 번역투 표현을 더 자연스러운 말투로 바꾸는 입문 수업입니다.",
     audience: "both",
     status: "published",
     topicTags: ["순우리말", "일상", "표현"],
     difficulty: 1,
-    focus: "비슷해 보이는 표현을 나누어 보고 실제 대화에서 바로 쓸 수 있도록 익힙니다.",
+    focus: "비슷해 보이는 표현을 나눠 보고 실제 대화에 바로 써 보도록 돕습니다.",
   },
   {
     id: "11111111-1111-1111-1111-111111111002",
     slug: "contextual-english-for-korean-speakers",
     title: "직역을 줄이고 상황별 영어 표현 익히기",
-    summary: "한국어식 사고를 줄이고 영어 문맥에 맞게 표현을 조정하는 학습 자료입니다.",
+    summary: "한국어식 사고를 줄이고 영어 문맥에 맞는 표현을 고르는 학습 자료입니다.",
     audience: "korean_english_learner",
     status: "published",
     topicTags: ["영어표현", "상황학습", "번역투"],
     difficulty: 2,
-    focus: "요청, 제안, 사과 문장을 상황에 맞는 자연스러운 영어로 바꿔 봅니다.",
+    focus: "요청, 제안, 결과 문장을 상황에 맞는 자연스러운 영어로 바꾸는 연습입니다.",
   },
   {
     id: "11111111-1111-1111-1111-111111111003",
@@ -32,7 +33,7 @@ export const lessons: LessonCard[] = [
     status: "reviewed",
     topicTags: ["읽기이해", "한국어", "학습자료"],
     difficulty: 2,
-    focus: "지시어, 연결 표현, 문단의 핵심을 중심으로 짧은 글을 읽는 연습을 합니다.",
+    focus: "지시어, 연결 표현, 문단 핵심을 중심으로 짧은 글을 읽는 연습입니다.",
   },
 ];
 
@@ -64,7 +65,7 @@ export const promptTemplates: PromptTemplate[] = [
   {
     id: "33333333-3333-3333-3333-333333333001",
     slug: "correction-structured",
-    title: "맞춤법과 문맥 교정",
+    title: "문장 교정과 설명",
     task: "correction",
     description: "문장 교정과 설명, 대안 표현을 구조화해 반환합니다.",
     activeVersionId: "44444444-4444-4444-4444-444444444001",
@@ -87,23 +88,85 @@ export const promptTemplates: PromptTemplate[] = [
   },
 ];
 
+export const promptVersionSeeds: PromptVersion[] = [
+  {
+    id: "44444444-4444-4444-4444-444444444001",
+    templateId: "33333333-3333-3333-3333-333333333001",
+    version: 3,
+    model: "gpt-5.4-mini",
+    systemPrompt: promptRegistry.correction.system,
+    instructions: promptRegistry.correction.instructions,
+    status: "active",
+    notes: "기본 교정 활성 버전",
+    lastEvalRunId: null,
+    lastEvalScore: null,
+    updatedAt: "2026-04-15T00:00:00.000Z",
+  },
+  {
+    id: "44444444-4444-4444-4444-444444444002",
+    templateId: "33333333-3333-3333-3333-333333333002",
+    version: 2,
+    model: "gpt-5.4-mini",
+    systemPrompt: promptRegistry.lesson_generation.system,
+    instructions: promptRegistry.lesson_generation.instructions,
+    status: "active",
+    notes: "기본 수업 초안 생성 활성 버전",
+    lastEvalRunId: null,
+    lastEvalScore: null,
+    updatedAt: "2026-04-15T00:00:00.000Z",
+  },
+  {
+    id: "44444444-4444-4444-4444-444444444003",
+    templateId: "33333333-3333-3333-3333-333333333003",
+    version: 1,
+    model: "gpt-5.4-mini",
+    systemPrompt: promptRegistry.video_script_generation.system,
+    instructions: promptRegistry.video_script_generation.instructions,
+    status: "active",
+    notes: "기본 영상 스크립트 생성 활성 버전",
+    lastEvalRunId: null,
+    lastEvalScore: null,
+    updatedAt: "2026-04-15T00:00:00.000Z",
+  },
+  {
+    id: "44444444-4444-4444-4444-444444444004",
+    templateId: "33333333-3333-3333-3333-333333333001",
+    version: 4,
+    model: "gpt-5.4-mini",
+    systemPrompt: `${promptRegistry.correction.system} Explicitly contrast literal transfer with the corrected sentence when relevant.`,
+    instructions: [
+      ...promptRegistry.correction.instructions,
+      "Mention whether the correction fixed literal transfer or argument structure.",
+    ],
+    status: "draft",
+    notes: "후보 교정 버전. eval 통과 전 활성화 금지",
+    lastEvalRunId: null,
+    lastEvalScore: null,
+    updatedAt: "2026-04-15T00:00:00.000Z",
+  },
+];
+
 export const evalSets: EvalSet[] = [
   {
     id: "55555555-5555-5555-5555-555555555001",
     task: "correction",
     name: "기본 교정 정확도",
-    description: "맞춤법, 문맥, 설명의 명확성을 함께 확인합니다.",
+    description: "문법, 문맥, 설명의 명확성을 함께 확인합니다.",
     scoreThreshold: 84,
     cases: [
       {
         id: "case-1",
-        input: "내일 회의 자료를 체크 부탁드릴게요.",
-        expectedFocus: "맞춤법과 공손한 표현",
+        input: "내일 파일 체크 부탁드릴게요.",
+        expectedFocus: "자연스러운 교정 표현",
+        expectedCorrection: "내일 파일 확인 부탁드릴게요.",
+        requiredNotes: ["자연", "표현"],
       },
       {
         id: "case-2",
         input: "I will explain you this issue tomorrow.",
         expectedFocus: "영어 동사 목적어 구조 교정",
+        expectedCorrection: "I will explain this issue to you tomorrow.",
+        requiredNotes: ["동사", "구조"],
       },
     ],
   },
@@ -118,6 +181,9 @@ export const evalSets: EvalSet[] = [
         id: "lesson-case-1",
         input: "중급자를 위한 순우리말 일상 표현 수업",
         expectedFocus: "수업 사이의 명확한 예시",
+        audience: "foreign_learner",
+        difficulty: 2,
+        expectedSections: ["예문", "연습"],
       },
     ],
   },

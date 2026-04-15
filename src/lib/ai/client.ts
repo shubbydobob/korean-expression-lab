@@ -5,8 +5,17 @@ type ChatMessage = {
   content: string;
 };
 
-export async function callOpenAiJson(messages: ChatMessage[]) {
-  const { apiKey, baseUrl, model } = getAiEnv();
+type StructuredOutputConfig = {
+  name: string;
+  schema: Record<string, unknown>;
+};
+
+export async function callOpenAiJson(input: {
+  model: string;
+  messages: ChatMessage[];
+  output: StructuredOutputConfig;
+}) {
+  const { apiKey, baseUrl } = getAiEnv();
 
   if (!apiKey) {
     return null;
@@ -19,10 +28,17 @@ export async function callOpenAiJson(messages: ChatMessage[]) {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model,
+      model: input.model,
       temperature: 0.3,
-      response_format: { type: "json_object" },
-      messages,
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: input.output.name,
+          strict: true,
+          schema: input.output.schema,
+        },
+      },
+      messages: input.messages,
     }),
   });
 

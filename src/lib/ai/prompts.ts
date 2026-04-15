@@ -1,6 +1,6 @@
 import type { PromptTask } from "@/lib/types";
 
-type PromptConfig = {
+export type PromptConfig = {
   system: string;
   instructions: string[];
 };

@@ -44,10 +44,14 @@ async function main() {
 
   assert(harnessSource.includes("runStructuredTask"), "Harness should use the shared structured task runner");
   assert(harnessSource.includes("trackAiRun"), "Harness should track AI executions");
+  assert(harnessSource.includes("resolvePromptContext"), "Harness should resolve the selected prompt version");
+  assert(harnessSource.includes("promptVersionId"), "Harness should support explicit prompt version execution");
   assert(repositorySource.includes("const TRANSITIONS"), "Repository should declare review state transitions");
   assert(repositorySource.includes("createEvalRun"), "Repository should persist eval runs");
   assert(repositorySource.includes("createAiRun"), "Repository should persist AI runs");
   assert(repositorySource.includes("activatePromptVersion"), "Repository should support prompt activation");
+  assert(repositorySource.includes("systemPrompt"), "Prompt versions should carry runtime prompt bodies");
+  assert(repositorySource.includes("instructions"), "Prompt versions should carry runtime instructions");
   assert(
     repositorySource.includes("cannot be activated before passing eval"),
     "Repository should gate prompt activation on eval success",
@@ -81,6 +85,8 @@ async function main() {
 
   for (const version of store.promptVersions) {
     assert(validPromptStatuses.has(version.status), `Invalid prompt version status: ${version.id}`);
+    assert(typeof version.systemPrompt === "string" && version.systemPrompt.length > 0, `Prompt version missing systemPrompt: ${version.id}`);
+    assert(Array.isArray(version.instructions) && version.instructions.length > 0, `Prompt version missing instructions: ${version.id}`);
     activeCounts.set(version.templateId, (activeCounts.get(version.templateId) || 0) + (version.status === "active" ? 1 : 0));
     if (version.status === "active") {
       assert(
@@ -88,6 +94,11 @@ async function main() {
         `Active prompt version must be referenced by a template: ${version.id}`,
       );
     }
+  }
+
+  for (const run of store.aiRuns) {
+    assert(typeof run.promptFingerprint === "string" && run.promptFingerprint.length > 0, `AI run missing prompt fingerprint: ${run.id}`);
+    assert(run.promptSnapshot && typeof run.promptSnapshot.system === "string", `AI run missing prompt snapshot: ${run.id}`);
   }
 
   for (const [templateId, count] of activeCounts.entries()) {
