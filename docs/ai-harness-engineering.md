@@ -1,87 +1,92 @@
 # AI Harness Engineering
 
 ## 목적
-- 이 저장소의 AI 기능을 프롬프트 실험이 아니라 운영 가능한 하네스로 다룬다.
-- 모든 AI 출력은 스키마, fallback, 평가, 검수 상태를 포함한 제품 자산으로 관리한다.
-- 공개 학습 경험보다 먼저 운영 통제와 품질 추적 가능성을 보장한다.
+- 이 저장소의 AI 기능을 단순 프롬프트 호출이 아니라 운영 가능한 하네스로 관리한다.
+- 모든 AI 출력은 스키마, fallback, eval, 검수, 상태 전이를 포함한 제품 자산으로 취급한다.
+- 구현 하네스뿐 아니라 작업 방식도 하네스처럼 설계해서, 목적별 서브에이전트를 반복 가능한 절차로 사용한다.
 
 ## 적용 범위
-- `src/lib/ai/prompts.ts`: 태스크별 시스템 프롬프트와 지시문
+- `src/lib/ai/prompts.ts`: 태스크별 프롬프트 자산
 - `src/lib/ai/schemas.ts`: 입력/출력 스키마
-- `src/lib/ai/harness.ts`: 호출, fallback, 평가 실행
-- `src/app/api/admin/*`: 관리자 전용 생성 및 평가 API
-- `docs/db-schema.sql`: 프롬프트, 버전, 평가셋, 실행 결과 저장 구조
+- `src/lib/ai/harness.ts`: 호출, 파싱, fallback, 추적, eval 실행
+- `src/app/api/admin/*`: 관리자 전용 생성, eval, 활성화 API
+- `src/lib/content/repository.ts`: 프롬프트 버전, eval run, ai run, 상태 관리
+- `docs/db-schema.sql`: 영속 저장 구조
+- `agents/*.toml`: 작업 단계별 서브에이전트 하네스
 
-## 핵심 원칙
-- 프롬프트는 코드 여기저기에 흩뿌리지 않고 자산처럼 버전 관리한다.
-- 모델 호출 실패를 전제로 fallback 경로를 설계한다.
-- 스키마 없는 응답은 저장하지 않고 UI에도 직접 렌더링하지 않는다.
-- 평가 없이 프롬프트 버전을 활성화하지 않는다.
-- `draft`, `reviewed`, `published`, `archived` 상태를 공개 정책의 기준으로 유지한다.
+## 제품 하네스 원칙
+- 프롬프트는 자산처럼 버전 관리한다.
+- 스키마 없는 응답은 저장하거나 렌더링하지 않는다.
+- fallback은 실제 응답 스키마를 만족해야 한다.
+- eval 없이 프롬프트 버전을 활성화하지 않는다.
+- `draft`, `reviewed`, `published`, `archived` 상태를 공개 정책의 기준으로 삼는다.
 
-## 엔지니어링 단위
+## 작업 하네스 원칙
+- 기능 작업은 `설계 -> 구현 -> 리뷰 -> 검증` 단계로 나눈다.
+- 각 단계는 목적에 맞는 서브에이전트를 배치한다.
+- 메인 에이전트는 통합과 최종 판단을 담당하고, 세부 단계는 가능한 한 역할별 에이전트에 위임한다.
+- 실제 수행한 서브에이전트 조합은 작업 로그로 남겨 재현 가능하게 관리한다.
 
-### 1. Prompt
-- 태스크별 목적과 시스템 지시를 정의한다.
-- 변경 시 의도한 학습 효과와 출력 제약을 함께 기록한다.
+## 단계별 서브에이전트 매핑
+### 1. 설계
+- UI/UX 결정: `ui-designer`
+- API 계약/스키마: `api-designer`
+- 라우팅/서버 액션 경계: `nextjs-developer`
+- 타입 경계 점검: `typescript-pro`
 
-### 2. Schema
-- 요청 스키마와 응답 스키마를 같이 둔다.
-- 필수 키, 타입, 길이, enum 제약을 먼저 생각한다.
+### 2. 구현
+- 클라이언트 구현: `frontend-developer`
+- 서버/API/인증/하네스 구현: `backend-developer`
+- 화면과 서버를 함께 바꾸는 기능: `fullstack-developer`
+- SQL/스키마 변경: `sql-pro`
+- 운영 DB 관점: `database-administrator`
 
-### 3. Harness
-- 프롬프트 조립, 모델 호출, 파싱, fallback, 예외 처리를 담당한다.
-- 라우트는 하네스 호출과 HTTP 입출력에만 집중한다.
+### 3. 리뷰
+- 회귀/보안/계약 파손/누락 테스트: `reviewer`
 
-### 4. Eval
-- 태스크별 평가셋과 임계점수를 관리한다.
-- 승격 판단은 감이 아니라 평가 결과를 근거로 한다.
+### 4. 검증
+- 테스트 시나리오/인수 조건/실패 경로: `qa-expert`
+- CI/배포/환경 문제: `devops-engineer`
 
-### 5. Review
-- AI 초안은 바로 공개하지 않고 관리자 검수 단계를 거친다.
-- 공개 가능한 상태는 사람이 확인한 결과만 허용한다.
+## 새 AI 기능 추가 절차
+1. `api-designer`로 입력/출력 스키마와 응답 구조를 정한다.
+2. `backend-developer`가 `prompts.ts`, `schemas.ts`, `harness.ts`에 기능을 추가한다.
+3. 타입 경계가 넓으면 `typescript-pro`가 계약 일관성을 검토한다.
+4. `reviewer`가 fallback, eval gate, 공개 차단 원칙 위반이 없는지 본다.
+5. `qa-expert`가 정상/실패/API 통합 경로의 검증 항목을 정리한다.
+6. 메인 에이전트가 타입체크, 빌드, 테스트, 배포를 최종 수행한다.
 
-## 새 AI 기능 추가 체크리스트
-1. 태스크 이름을 정하고 scope를 명확히 한다.
-2. 입력 스키마와 출력 스키마를 만든다.
-3. `src/lib/ai/prompts.ts`에 지시문을 추가한다.
-4. `src/lib/ai/harness.ts`에 호출 경로와 fallback을 추가한다.
-5. 관리자 전용 API 또는 내부 액션으로 노출한다.
-6. 평가셋 또는 최소 샘플 케이스를 추가한다.
-7. 공개 상태와 검수 상태를 우회하지 않는지 확인한다.
+## 공개 UI 변경 절차
+1. `ui-designer`가 정보 구조와 상태 표현을 먼저 정리한다.
+2. `frontend-developer` 또는 `nextjs-developer`가 화면을 구현한다.
+3. 텍스트, 접근성, 상호작용 회귀를 `reviewer`가 본다.
+4. `qa-expert`가 주요 사용자 흐름과 실패 상태를 점검한다.
 
-## 변경 유형별 규칙
-
-### 프롬프트 변경
-- 출력 모양을 바꾸지 않는다면 `prompt` 범위로 커밋한다.
-- 태스크 목적이 달라지면 관련 eval 갱신 여부를 함께 검토한다.
-
-### 스키마 변경
-- 기존 저장 구조와 API 응답에 미치는 영향을 적는다.
-- 호환되지 않으면 UI 또는 관리자 화면도 같은 작업 흐름에서 점검한다.
-
-### fallback 변경
-- API 키 없음, 모델 오류, 파싱 실패 상황을 기준으로 설계한다.
-- fallback도 실제 응답 스키마를 만족해야 한다.
-
-### 평가 변경
-- 평가 케이스가 늘어났는지, 임계점수가 달라졌는지, 승격 기준이 바뀌었는지 남긴다.
-
-## 운영 리스크 질문
-- 이 변경이 미검수 결과를 공개 경로에 노출시키는가
-- 이 변경이 프롬프트 버전과 평가 결과의 연결을 흐리게 만드는가
-- 이 변경이 관리자 인증 또는 관리자 API 보호를 약화시키는가
-- 이 변경이 fallback 없이 외부 모델 성공만 가정하는가
+## DB 변경 절차
+1. `sql-pro`가 스키마/쿼리 구조를 설계한다.
+2. `database-administrator`가 제약, 인덱스, 운영 안정성을 검토한다.
+3. `backend-developer`가 저장 계층과 연결한다.
+4. `reviewer`가 마이그레이션 리스크를 본다.
 
 ## 검증 기준
 - `npm run typecheck`
 - `npm run build`
-- 관련 API 수동 확인
-- 필요 시 평가셋 실행 또는 최소 샘플 검증
-- `DATABASE_URL`이 연결된 환경에서는 `npm run db:seed`, `npm run db:verify`로 DB 경로를 점검한다.
+- `npm run test`
+- 필요 시 `npm run db:seed`, `npm run db:verify`, `npm run db:test`
+- 공개 기능이 검수/상태 관리 원칙을 우회하지 않는지 확인
+- 새 AI 기능에 입력/출력 스키마, fallback, eval 또는 최소 검증 경로가 존재하는지 확인
 
-## 관련 문서
-- `AGENTS.md`
-- `docs/agent-operations.md`
-- `docs/commit-conventions.md`
-- `docs/db-schema.sql`
+## 리뷰 질문
+- 이 변경이 스키마 없는 AI 응답을 허용하는가
+- 이 변경이 eval 없이 프롬프트를 활성화하게 만드는가
+- 이 변경이 검수되지 않은 콘텐츠를 공개 상태로 노출하는가
+- 이 변경이 fallback 없이 모델 성공만 가정하는가
+- 이 변경이 단계별 서브에이전트 하네스를 생략해 단일 에이전트에 과도하게 몰리는가
+
+## Subagent Log Format
+- `step`: 설계, 구현, 리뷰, 검증
+- `agent`: 사용한 서브에이전트
+- `purpose`: 맡긴 일
+- `scope`: 파일 또는 기능 범위
+- `result`: 산출물 요약
+- `validation`: 확인한 내용과 남은 리스크
